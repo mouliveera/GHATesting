@@ -1,9 +1,6 @@
 name: Deploy Release Container
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       AppId:
@@ -30,39 +27,67 @@ on:
         description: 'Version tag of Airflow (ex. 2.4.3-2)'
         required: true
         type: string
-      TimeoutAndRegion:
-        description: 'JSON for TimeoutInMinutes and AWSRegion'
+      AirflowRepo:
+        description: 'Airflow repository name'
         required: true
-        default: '{"AWSRegion":"us-west1","TimeoutInMinutes":10}'
+        type: string
+      AWSAccountId:
+        description: 'AWS Account ID (for authorization checks)'
+        required: true
         type: string
 
 jobs:
-  setup:
+  validate-inputs:
     runs-on: ubuntu-latest
     steps:
-      - name: Parse Inputs
-        id: parse_inputs
+      - name: Validate Inputs
         run: |
-          echo "APP_ID=${{ github.event.inputs.AppId }}" >> $GITHUB_ENV
-          echo "VPC_ID=${{ github.event.inputs.VpcId }}" >> $GITHUB_ENV
-          echo "REPOSITORY_NAME=${{ github.event.inputs.RepositoryName }}" >> $GITHUB_ENV
-          echo "BRANCH_NAME=${{ github.event.inputs.BranchName }}" >> $GITHUB_ENV
-          echo "RELEASE_NAME=${{ github.event.inputs.ReleaseName }}" >> $GITHUB_ENV
-          echo "AIRFLOW_VERSION=${{ github.event.inputs.AirflowVersion }}" >> $GITHUB_ENV
+          required_inputs=("AppId" "VpcId" "RepositoryName" "BranchName" "ReleaseName" "AirflowVersion" "AirflowRepo" "AWSAccountId")
+
+          for var in "${required_inputs[@]}"; do
+            value="${{ github.event.inputs[$var] }}"
+            if [[ -z "$value" ]]; then
+              echo "$var is required"; exit 1
+            fi
+          done
+
+      - name: Validate Account Authorization
+        run: |
+          AWS_ACCOUNT_ID="${{ github.event.inputs.AWSAccountId }}"
+          RELEASE_NAME="${{ github.event.inputs.ReleaseName }}"
           
-          echo '${{ github.event.inputs.TimeoutAndRegion }}' > timeout_region.json
-          cat timeout_region.json | jq .
+          # List of allowed AWS accounts
+          ALLOWED_ACCOUNTS=("923397148186" "102443476650" "817209399767" "252898585127" "805528740914" "063345380468" "844127575310" "902854700762")
+          
+          if [[ ! " ${ALLOWED_ACCOUNTS[@]} " =~ " ${AWS_ACCOUNT_ID} " ]]; then
+            echo "AWS Account $AWS_ACCOUNT_ID is not authorized for container builds"; exit 1
+          fi
 
-          echo "AWS_REGION=$(jq -r '.AWSRegion' timeout_region.json)" >> $GITHUB_ENV
-          echo "TIMEOUT_IN_MINUTES=$(jq -r '.TimeoutInMinutes' timeout_region.json)" >> $GITHUB_ENV
+          # Define allowed release names per account
+          declare -A ALLOWED_RELEASES
+          ALLOWED_RELEASES["252898585127"]="claims-dsc claims-preprod claims-prod"
+          ALLOWED_RELEASES["805528740914"]="pl-dsc pl-preprod pl-prod"
+          ALLOWED_RELEASES["063345380468"]="mlc-discovery mlc-preprod mlc-prod"
+          ALLOWED_RELEASES["844127575310"]="sc-discovery sc-preprod sc-prod"
+          ALLOWED_RELEASES["902854700762"]="ilab-discovery cmra-discovery cmra-prod ulm-discovery ulm-prod"
+          ALLOWED_RELEASES["923397148186"]="gb-discovery gb-preprod gb-prod"
+          ALLOWED_RELEASES["102443476650"]="gs-discovery gs-preprod gs-prod"
 
-      - name: Print Parsed Inputs
+          # Validate release name
+          if [[ -n "${ALLOWED_RELEASES[$AWS_ACCOUNT_ID]}" ]]; then
+            if [[ ! " ${ALLOWED_RELEASES[$AWS_ACCOUNT_ID]} " =~ " ${RELEASE_NAME} " ]]; then
+              echo "AWS Account $AWS_ACCOUNT_ID is not authorized for release name: $RELEASE_NAME"; exit 1
+            fi
+          fi
+
+      - name: Print Validated Inputs
         run: |
-          echo "AppId: $APP_ID"
-          echo "VpcId: $VPC_ID"
-          echo "RepositoryName: $REPOSITORY_NAME"
-          echo "BranchName: $BRANCH_NAME"
-          echo "ReleaseName: $RELEASE_NAME"
-          echo "AirflowVersion: $AIRFLOW_VERSION"
-          echo "AWSRegion: $AWS_REGION"
-          echo "TimeoutInMinutes: $TIMEOUT_IN_MINUTES"
+          echo "All inputs are valid"
+          echo "AppId: ${{ github.event.inputs.AppId }}"
+          echo "VpcId: ${{ github.event.inputs.VpcId }}"
+          echo "RepositoryName: ${{ github.event.inputs.RepositoryName }}"
+          echo "BranchName: ${{ github.event.inputs.BranchName }}"
+          echo "ReleaseName: ${{ github.event.inputs.ReleaseName }}"
+          echo "AirflowVersion: ${{ github.event.inputs.AirflowVersion }}"
+          echo "AirflowRepo: ${{ github.event.inputs.AirflowRepo }}"
+          echo "AWS Account ID: ${{ github.event.inputs.AWSAccountId }}"
