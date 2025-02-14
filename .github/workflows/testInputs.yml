@@ -1,6 +1,9 @@
 name: Print CloudFormation Parameters
 
 on:
+  push:
+    branch:
+      - main
   workflow_dispatch:
     inputs:
       AppId:
