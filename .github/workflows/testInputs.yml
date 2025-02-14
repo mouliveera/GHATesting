@@ -1,29 +1,22 @@
-name: Mixed inputs
+name: Print CloudFormation Parameters
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
-      name:
-        type: choice
-        description: Who to greet
-        options: 
-        - monalisa
-        - cschleiden
-      message:
+      AppId:
+        description: "PlanIT application ID (excludes APP-)"
         required: true
-      use-emoji:
-        type: boolean
-        description: Include 🎉🤣 emojis
-      environment:
-        type: environment
+        default: "0"
+      VpcId:
+        description: "VPC ID for provisioning"
+        required: true
 
 jobs:
-  greet:
+  print-values:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Send greeting
-      run: echo "${{ github.event.inputs.message }} ${{ fromJSON('["", "🥳"]')[github.event.inputs.use-emoji == 'true'] }} ${{ github.event.inputs.name }}"
+      - name: Print Inputs
+        run: |
+          echo "AppId: ${{ github.event.inputs.AppId }}"
+          echo "VpcId: ${{ github.event.inputs.VpcId }}"
