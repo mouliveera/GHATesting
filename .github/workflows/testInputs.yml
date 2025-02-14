@@ -2,14 +2,13 @@ name: Deploy Release Container
 
 on:
   push:
-    branch:
+    branches:
       - main
   workflow_dispatch:
     inputs:
       AppId:
-        description: 'PlanIT application ID number, excludes APP- (ex. "4853")'
+        description: 'PlanIT application ID number (ex. "4853")'
         required: true
-        default: '0'
         type: string
       VpcId:
         description: 'VPC to provision the pipeline'
@@ -28,64 +27,36 @@ on:
         required: true
         type: string
       AirflowVersion:
-        description: 'Version tag of Airflow. For example 2.4.3-2'
+        description: 'Version tag of Airflow (ex. 2.4.3-2)'
         required: true
         type: string
-      AirflowRepo:
-        description: 'Airflow run type - OS or managed'
+      TimeoutAndRegion:
+        description: 'JSON for TimeoutInMinutes and AWSRegion'
         required: true
-        default: 'ap-airflow'
-        type: string
-        options:
-          - ap-airflow
-          - astro-runtime
-      AWSRegion:
-        description: 'AWS Region to determine the correct Nexus secret'
-        required: true
-        type: string
-        options:
-          - us-east-1
-          - us-east-2
-          - eu-west-2
-      TimeoutInMinutes:
-        description: 'Build timeout in minutes'
-        required: true
-        default: '10'
-        type: number
-        min: 5
-        max: 480
-      DataClassification:
-        description: 'Data classification for the application'
-        required: true
-        default: 'NonConfidential'
-        type: string
-        options:
-          - NonConfidential
-          - CompanyConfidential
-          - HighlyRestricted
-      StackNameSuffix:
-        description: 'Optional suffix of the output stack name to become APP-AppId-StageName-StackNameSuffix; empty string will produce APP-AppId-StageName'
-        required: false
-        default: ''
+        default: '{"AWSRegion":"us-west1","TimeoutInMinutes":10}'
         type: string
 
 jobs:
   setup:
     runs-on: ubuntu-latest
-    env:
-      APP_ID: ${{ github.event.inputs.AppId }}
-      VPC_ID: ${{ github.event.inputs.VpcId }}
-      REPOSITORY_NAME: ${{ github.event.inputs.RepositoryName }}
-      BRANCH_NAME: ${{ github.event.inputs.BranchName }}
-      RELEASE_NAME: ${{ github.event.inputs.ReleaseName }}
-      AIRFLOW_VERSION: ${{ github.event.inputs.AirflowVersion }}
-      AIRFLOW_REPO: ${{ github.event.inputs.AirflowRepo }}
-      AWS_REGION: ${{ github.event.inputs.AWSRegion }}
-      TIMEOUT_IN_MINUTES: ${{ github.event.inputs.TimeoutInMinutes }}
-      DATA_CLASSIFICATION: ${{ github.event.inputs.DataClassification }}
-      STACK_NAME_SUFFIX: ${{ github.event.inputs.StackNameSuffix }}
     steps:
-      - name: Print Inputs
+      - name: Parse Inputs
+        id: parse_inputs
+        run: |
+          echo "APP_ID=${{ github.event.inputs.AppId }}" >> $GITHUB_ENV
+          echo "VPC_ID=${{ github.event.inputs.VpcId }}" >> $GITHUB_ENV
+          echo "REPOSITORY_NAME=${{ github.event.inputs.RepositoryName }}" >> $GITHUB_ENV
+          echo "BRANCH_NAME=${{ github.event.inputs.BranchName }}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=${{ github.event.inputs.ReleaseName }}" >> $GITHUB_ENV
+          echo "AIRFLOW_VERSION=${{ github.event.inputs.AirflowVersion }}" >> $GITHUB_ENV
+          
+          echo '${{ github.event.inputs.TimeoutAndRegion }}' > timeout_region.json
+          cat timeout_region.json | jq .
+
+          echo "AWS_REGION=$(jq -r '.AWSRegion' timeout_region.json)" >> $GITHUB_ENV
+          echo "TIMEOUT_IN_MINUTES=$(jq -r '.TimeoutInMinutes' timeout_region.json)" >> $GITHUB_ENV
+
+      - name: Print Parsed Inputs
         run: |
           echo "AppId: $APP_ID"
           echo "VpcId: $VPC_ID"
@@ -93,9 +64,5 @@ jobs:
           echo "BranchName: $BRANCH_NAME"
           echo "ReleaseName: $RELEASE_NAME"
           echo "AirflowVersion: $AIRFLOW_VERSION"
-          echo "AirflowRepo: $AIRFLOW_REPO"
           echo "AWSRegion: $AWS_REGION"
           echo "TimeoutInMinutes: $TIMEOUT_IN_MINUTES"
-          echo "DataClassification: $DATA_CLASSIFICATION"
-          echo "StackNameSuffix: $STACK_NAME_SUFFIX"
-
