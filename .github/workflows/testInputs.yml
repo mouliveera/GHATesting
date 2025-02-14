@@ -47,9 +47,45 @@ jobs:
         run: |
           VALUE="${{ github.event.inputs[matrix.var] }}"
           if [[ -z "$VALUE" ]]; then
-            echo "❌ Error: ${{ matrix.var }} is required"
+            echo "Error: ${{ matrix.var }} is required"
             exit 1
           fi
+          
+  validate-account:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate AWS Account and Release Name
+        run: |
+          AWS_ACCOUNT_ID="${{ github.event.inputs.AWS_ACCOUNT_ID }}"
+          RELEASE_NAME="${{ github.event.inputs.RELEASE_NAME }}"
+
+          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+          echo "RELEASE_NAME: $RELEASE_NAME"
+
+          # Define allowed accounts and release names
+          declare -A ACCOUNT_RELEASE_MAP
+          ACCOUNT_RELEASE_MAP["252898585127"]="claims-dsc claims-preprod claims-prod"
+          ACCOUNT_RELEASE_MAP["805528740914"]="pl-dsc pl-preprod pl-prod"
+          ACCOUNT_RELEASE_MAP["063345380468"]="mlc-discovery mlc-preprod mlc-prod"
+          ACCOUNT_RELEASE_MAP["844127575310"]="sc-discovery sc-preprod sc-prod"
+          ACCOUNT_RELEASE_MAP["902854700762"]="ilab-discovery cmra-discovery cmra-prod ulm-discovery ulm-prod"
+          ACCOUNT_RELEASE_MAP["923397148186"]="gb-discovery gb-preprod gb-prod"
+          ACCOUNT_RELEASE_MAP["102443476650"]="gs-discovery gs-preprod gs-prod"
+
+          # Check if AWS_ACCOUNT_ID is authorized
+          if [[ ! -v ACCOUNT_RELEASE_MAP[$AWS_ACCOUNT_ID] ]]; then
+            echo "ERROR: Account ID $AWS_ACCOUNT_ID is not authorized!"
+            exit 1
+          fi
+
+          # Check if RELEASE_NAME is allowed for the given AWS_ACCOUNT_ID
+          ALLOWED_RELEASES=${ACCOUNT_RELEASE_MAP[$AWS_ACCOUNT_ID]}
+          if [[ ! " $ALLOWED_RELEASES " =~ " $RELEASE_NAME " ]]; then
+            echo "ERROR: Release Name $RELEASE_NAME is not authorized for Account $AWS_ACCOUNT_ID!"
+            exit 1
+          fi
+
+          echo "Validation successful!"
 
   setup:
     runs-on: ubuntu-latest
