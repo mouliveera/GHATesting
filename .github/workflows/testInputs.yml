@@ -39,20 +39,15 @@ on:
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        var: [AppId, VpcId, RepositoryName, BranchName, ReleaseName, AirflowVersion, TimeoutAndRegion]
     steps:
       - name: Validate Inputs
         run: |
-          MISSING=""
-
-          for VAR in AppId VpcId RepositoryName BranchName ReleaseName AirflowVersion TimeoutAndRegion; do
-            VALUE="${{ github.event.inputs[VAR] }}"
-            if [[ -z "$VALUE" ]]; then
-              echo "❌ Error: $VAR is required"
-              MISSING="yes"
-            fi
-          done
-
-          if [[ "$MISSING" == "yes" ]]; then
+          VALUE="${{ github.event.inputs[matrix.var] }}"
+          if [[ -z "$VALUE" ]]; then
+            echo "❌ Error: ${{ matrix.var }} is required"
             exit 1
           fi
 
