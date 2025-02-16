@@ -47,7 +47,7 @@ on:
         - 902854700762
         - 923397148186
         - 102443476650
-         
+
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
             echo "Error: ${{ matrix.var }} is required"
             exit 1
           fi
-          
+
   validate-account:
     runs-on: ubuntu-latest
     steps:
@@ -112,12 +112,64 @@ jobs:
           echo "BRANCH_NAME=${{ github.event.inputs.BranchName }}" >> $GITHUB_ENV
           echo "RELEASE_NAME=${{ github.event.inputs.ReleaseName }}" >> $GITHUB_ENV
           echo "AIRFLOW_VERSION=${{ github.event.inputs.AirflowVersion }}" >> $GITHUB_ENV
-          
+
           echo '${{ github.event.inputs.TimeoutAndRegion }}' > timeout_region.json
           cat timeout_region.json | jq .
 
           echo "AWS_REGION=$(jq -r '.AWSRegion' timeout_region.json)" >> $GITHUB_ENV
           echo "TIMEOUT_IN_MINUTES=$(jq -r '.TimeoutInMinutes' timeout_region.json)" >> $GITHUB_ENV
+
+      - name: Set Secrets Dynamically
+        run: |
+          # Region-based Nexus Secrets mapping
+          declare -A NEXUS_SECRETS=(
+            ["us-east-1"]="arn:aws:secretsmanager:us-east-1:293176983353:secret:nexus-8ZgQUY"
+            ["us-east-2"]="arn:aws:secretsmanager:us-east-2:293176983353:secret:nexus-dy4sJW"
+            ["eu-west-2"]="arn:aws:secretsmanager:eu-west-2:293176983353:secret:nexus-n5867f"
+          )
+
+      - name: Set API Key based on Release Name
+        run: |
+          # Define Release-based API Key mapping
+          declare -A API_KEYS=(
+            ["gs-discovery"]="/HIG/astronomer/apikey/gs-api"
+            ["gs-preprod"]="/HIG/astronomer/apikey/gs-api"
+            ["gs-prod"]="/HIG/astronomer/apikey/gs-api"
+            ["gb-discovery"]="/HIG/astronomer/apikey/gb-api"
+            ["gb-preprod"]="/HIG/astronomer/apikey/gb-api"
+            ["gb-prod"]="/HIG/astronomer/apikey/gb-api"
+            ["pl-dsc"]="/HIG/astronomer/apikey/pl-api"
+            ["pl-preprod"]="/HIG/astronomer/apikey/pl-api"
+            ["pl-prod"]="/HIG/astronomer/apikey/pl-api"
+            ["claims-dsc"]="/HIG/astronomer/apikey/claims-api"
+            ["claims-preprod"]="/HIG/astronomer/apikey/claims-api"
+            ["claims-prod"]="/HIG/astronomer/apikey/claims-api"
+            ["sc-discovery"]="/HIG/astronomer/apikey/sc-api"
+            ["sc-preprod"]="/HIG/astronomer/apikey/sc-api"
+            ["sc-prod"]="/HIG/astronomer/apikey/sc-api"
+            ["mlc-discovery"]="/HIG/astronomer/apikey/mlc-api"
+            ["mlc-preprod"]="/HIG/astronomer/apikey/mlc-api"
+            ["mlc-prod"]="/HIG/astronomer/apikey/mlc-api"
+            ["ds-sandbox"]="/HIG/astronomer/apikey/sandbox-api"
+            ["smm-discovery"]="/HIG/astronomer/apikey/dss-api"
+            ["smm-prod"]="/HIG/astronomer/apikey/dss-api"
+            ["ap-discovery"]="/HIG/astronomer/apikey/dss-api"
+            ["ap-prod"]="/HIG/astronomer/apikey/dss-api"
+            ["cmra-discovery"]="/HIG/astronomer/apikey/cmra-discovery-api"
+            ["cmra-prod"]="/HIG/astronomer/apikey/cmra-prod-api"
+            ["ilab-discovery"]="/HIG/astronomer/apikey/ilab-discovery-api"
+            ["ulm-discovery"]="/HIG/astronomer/apikey/ulm-discovery-api"
+            ["ulm-prod"]="/HIG/astronomer/apikey/ulm-prod-api"
+            ["mlops-core-discover"]="/HIG/astronomer/apikey/mlops-core-api"
+          )
+
+          # Retrieve API Key based on ReleaseName
+          API_KEY="${API_KEYS[$RELEASE_NAME]}"
+
+          if [[ -z "$API_KEY" ]]; then
+            echo "Error: No API key found for Release Name: $RELEASE_NAME"
+            exit 1
+          fi
 
       - name: Print Parsed Inputs
         run: |
@@ -129,3 +181,8 @@ jobs:
           echo "AirflowVersion: $AIRFLOW_VERSION"
           echo "AWSRegion: $AWS_REGION"
           echo "TimeoutInMinutes: $TIMEOUT_IN_MINUTES"
+          echo "NexusSecret: $NEXUS_SECRET"
+          echo "APIKey: $API_KEY"
+
+
+
