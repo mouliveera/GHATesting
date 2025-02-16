@@ -63,9 +63,6 @@ jobs:
             exit 1
           fi
 
-  validate-account:
-    runs-on: ubuntu-latest
-    steps:
       - name: Validate AWS Account and Release Name
         run: |
           AWS_ACCOUNT_ID="${{ github.event.inputs.AWS_ACCOUNT_ID }}"
@@ -194,3 +191,6 @@ jobs:
           echo "TimeoutInMinutes: $TIMEOUT_IN_MINUTES"
           echo "NexusSecret: $NEXUS_SECRET"
           echo "APIKey: $API_KEY"
+
+
+
