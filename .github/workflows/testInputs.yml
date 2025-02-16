@@ -47,6 +47,20 @@ on:
         - 902854700762
         - 923397148186
         - 102443476650
+      DataClassification:
+        description: 'Data classification for the application'
+        required: true
+        default: 'NonConfidential'
+        type: string
+        options:
+          - NonConfidential
+          - CompanyConfidential
+          - HighlyRestricted
+      StackNameSuffix:
+        description: 'Optional suffix of the output stack name to become APP-AppId-StageName-StackNameSuffix; empty string will produce APP-AppId-StageName'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   validate-inputs:
@@ -94,7 +108,14 @@ jobs:
             exit 1
           fi
 
-          echo "Validation successful!"
+      - name: Check if StackNameSuffix is Set
+        id: check_suffix
+        run: |
+          if [[ -z "${{ github.event.inputs.StackNameSuffix }}" ]]; then
+            echo "HAS_STACK_NAME_SUFFIX=false" >> $GITHUB_ENV
+          else
+            echo "HAS_STACK_NAME_SUFFIX=true" >> $GITHUB_ENV
+          fi
 
   setup:
     runs-on: ubuntu-latest
