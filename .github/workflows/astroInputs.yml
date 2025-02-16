@@ -59,24 +59,26 @@ on:
         default: ''
         type: string
 
-
 jobs:
   validate-inputs:
-    runs-on: generic
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         var: [AppId, VpcId, RepositoryName, BranchName, ReleaseName, AirflowVersion, TimeoutAndRegion]
     steps:
       - name: Validate Inputs
         run: |
-          VALUE="${{ github.event.inputs[matrix.var] }}"
+          VAR_NAME="${{ matrix.var }}"
+          VALUE="${{ github.event.inputs[VAR_NAME] }}"
           if [[ -z "$VALUE" ]]; then
-            echo "Error: ${{ matrix.var }} is required"
+            echo "Error: $VAR_NAME is required"
             exit 1
           fi
+        shell: bash
+
 jobs:
   setup:
-    runs-on: generic
+    runs-on: ubuntu-latest
     env:
       APP_ID: ${{ github.event.inputs.AppId }}
       VPC_ID: ${{ github.event.inputs.VpcId }}
