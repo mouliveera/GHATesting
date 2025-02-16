@@ -183,6 +183,3 @@ jobs:
           echo "TimeoutInMinutes: $TIMEOUT_IN_MINUTES"
           echo "NexusSecret: $NEXUS_SECRET"
           echo "APIKey: $API_KEY"
-
-
-
