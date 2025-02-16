@@ -108,15 +108,6 @@ jobs:
             exit 1
           fi
 
-      - name: Check if StackNameSuffix is Set
-        id: check_suffix
-        run: |
-          if [[ -z "${{ github.event.inputs.StackNameSuffix }}" ]]; then
-            echo "HAS_STACK_NAME_SUFFIX=false" >> $GITHUB_ENV
-          else
-            echo "HAS_STACK_NAME_SUFFIX=true" >> $GITHUB_ENV
-          fi
-
   setup:
     runs-on: ubuntu-latest
     needs: validate-inputs
@@ -199,6 +190,15 @@ jobs:
           fi
 
           echo "API_KEY=$API_KEY" >> $GITHUB_ENV
+
+      - name: Check if StackNameSuffix is Set
+        id: check_suffix
+        run: |
+          if [[ -z "${{ github.event.inputs.StackNameSuffix }}" ]]; then
+            echo "HAS_STACK_NAME_SUFFIX=false" >> $GITHUB_ENV
+          else
+            echo "HAS_STACK_NAME_SUFFIX=true" >> $GITHUB_ENV
+          fi
 
       - name: Print Parsed Inputs
         run: |
