@@ -128,6 +128,15 @@ jobs:
             ["eu-west-2"]="arn:aws:secretsmanager:eu-west-2:293176983353:secret:nexus-n5867f"
           )
 
+          NEXUS_SECRET="${NEXUS_SECRETS[$AWS_REGION]}"
+
+          if [[ -z "$NEXUS_SECRET" ]]; then
+            echo "Error: No Nexus Secret found for AWS Region: $AWS_REGION"
+            exit 1
+          fi
+
+          echo "NEXUS_SECRET=$NEXUS_SECRET" >> $GITHUB_ENV
+
       - name: Set API Key based on Release Name
         run: |
           # Define Release-based API Key mapping
@@ -170,6 +179,8 @@ jobs:
             echo "Error: No API key found for Release Name: $RELEASE_NAME"
             exit 1
           fi
+
+          echo "API_KEY=$API_KEY" >> $GITHUB_ENV
 
       - name: Print Parsed Inputs
         run: |
