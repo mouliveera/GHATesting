@@ -3,7 +3,7 @@ name: Deploy Astronomer Release Container
 on:
   push:
     branches:
-      - BRANCH-NAME
+      - main
   workflow_dispatch:
     inputs:
       AppId:
