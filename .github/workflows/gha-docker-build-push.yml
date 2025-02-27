@@ -28,5 +28,5 @@ jobs:
 
       - name: Build and Push Docker Image to Docker Hub
         run: |
-          docker build -t mouliveera/learnwithus:${{ inputs.docker_tag }} -f Docker/Dockerfile Docker/
-          docker push mouliveera/learnwithus:${{ inputs.docker_tag }}
+          docker build -t mouliveera/gha-testing:${{ inputs.docker_tag }} -f Docker/Dockerfile Docker/
+          docker push mouliveera/gha-testing:${{ inputs.docker_tag }}
