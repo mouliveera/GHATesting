@@ -1,0 +1,40 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: 'Docker Image Tag'
+        required: true
+        default: 'latest'
+      github_tag:
+        description: 'GHCR Image Tag'
+        required: false
+        default: 'latest'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and Push Docker Image to Docker Hub
+        run: |
+          docker build -t mouliveera/gha-testing:${{ inputs.docker_tag }} -f Docker/Dockerfile .
+          docker push mouliveera/gha-testing:${{ inputs.docker_tag }}
+
+      - name: Build and Push Docker Image to GHCR
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/gha-testing
+          docker tag mouliveera/gha-testing:${{ inputs.docker_tag }} $IMAGE_NAME:${{ inputs.github_tag }}
+          docker push $IMAGE_NAME:${{ inputs.github_tag }}
